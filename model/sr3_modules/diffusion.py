@@ -11,6 +11,7 @@ from tqdm import tqdm
 import os
 import utils
 import torchvision.models as models
+from calflops import calculate_flops
 
 from torchvision import transforms
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
@@ -208,11 +209,11 @@ class GaussianDiffusion(nn.Module):
         device = self.betas.device
         n = x_lr.size(0)
         noise = torch.randn_like(x_lr)
-    
+
         # 调整采样步长以更细地采样
         skip = max(1, self.num_timesteps // 5)  # 更细的采样步长
         seq = range(0, self.num_timesteps, skip)
-    
+
         x0_preds = []
         xs = [noise]
         mask_preds = []
@@ -232,21 +233,17 @@ class GaussianDiffusion(nn.Module):
             at_next = self.compute_alpha(b, next_t.long())
             xt = xs[-1].to('cuda')
 
+            # 阴影生成需要注释掉这部分
             b = self.betas
             a = (1 - b).cumprod(dim=0).index_select(0, t.long()).view(-1, 1, 1, 1)
             e = torch.randn_like(x_lr)
             x_noisy = x_lr * a.sqrt() + e * (1.0 - a).sqrt()
             xt = x_noisy * (1 - mask) + xt * mask
 
-
-            if continous:
-                et= self.denoise_fn(torch.cat([x_lr, mask, xt], dim=1), t,continous)
+            if i >= len(b) * 0.2:
+                et, mask = self.denoise_fn(torch.cat([x_lr, mask_0, xt], dim=1), t, continous)
             else:
-                if i >= len(b) * 0.2:
-                    et,mask = self.denoise_fn(torch.cat([x_lr, mask_0, xt], dim=1), t,continous)
-                else:
-                    et,mask = self.denoise_fn(torch.cat([x_lr, mask, xt], dim=1), t,continous)
-
+                et, mask = self.denoise_fn(torch.cat([x_lr, mask, xt], dim=1), t, continous)
 
             x0_t = (xt - et * (1 - at).sqrt()) / at.sqrt()
             x0_preds.append(x0_t.to('cpu'))
@@ -255,7 +252,6 @@ class GaussianDiffusion(nn.Module):
             c2 = ((1 - at_next)).sqrt()
             xt_next = at_next.sqrt() * x0_t + c2 * et
             # 调整阴影区域亮度
-
 
             xs.append(xt_next.to('cpu'))
 
@@ -296,11 +292,11 @@ class GaussianDiffusion(nn.Module):
         e = torch.randn_like(x_start)
         x_noisy = x_start * a.sqrt() + e * (1.0 - a).sqrt()
         x_recon, updated_mask = self.denoise_fn(
-            torch.cat([x_in['SR'],x_in['mask'], x_noisy], dim=1), t.float(),False)
+            torch.cat([x_in['SR'], x_in['mask'], x_noisy], dim=1), t.float(), False)
 
         loss = self.loss_func(e, x_recon)
 
-        res = (x_in['HR']+1)/2 - (x_in['SR']+1)/2
+        res = (x_in['HR'] + 1) / 2 - (x_in['SR'] + 1) / 2
         res = torch.mean(res, dim=1, keepdim=True)
         # res = res * avg_channel_gt / avg_channel
         res_map = torch.where(res < 0.05, torch.zeros_like(res), torch.ones_like(res))
@@ -310,3 +306,4 @@ class GaussianDiffusion(nn.Module):
 
     def forward(self, x, *args, **kwargs):
         return self.p_losses(x, *args, **kwargs)
+

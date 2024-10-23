@@ -445,10 +445,10 @@ class UNet(nn.Module):
                 x = layer(torch.cat((x, feat), dim=1), t)
             else:
                 x = layer(x)
-        if continous:
-            return self.final_conv(x)
-        else:
-            return self.final_conv(x), self.mask_tail(x)
+
+        return self.final_conv(x), self.mask_tail(x)
+
+
 
 
 
