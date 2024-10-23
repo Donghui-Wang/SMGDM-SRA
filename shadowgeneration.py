@@ -126,4 +126,53 @@ if __name__ == "__main__":
             # Metrics.save_img(
             #     Metrics.tensor2img(visuals['SR'][-1]), '{}/{}_{}.png'.format(result_path, current_step, idx))
 
-
+#
+# def blend_images(image1, image2, alpha=0.5):
+#     # 确保两幅图像的尺寸相同
+#     if image1.shape != image2.shape:
+#         raise ValueError("Image dimensions do not match.")
+#
+#     # 融合图像
+#     fused_image = cv2.addWeighted(image1, alpha, image2, 1 - alpha, 0)
+#     return fused_image
+#
+#
+# def process_and_save_images(image_dir1, image_dir2, output_dir, alpha=0.5):
+#     # 创建输出目录
+#     if not os.path.exists(output_dir):
+#         os.makedirs(output_dir)
+#
+#     # 获取所有图像文件名
+#     image_files1 = set(f for f in os.listdir(image_dir1) if os.path.isfile(os.path.join(image_dir1, f)))
+#     image_files2 = set(f for f in os.listdir(image_dir2) if os.path.isfile(os.path.join(image_dir2, f)))
+#
+#     # 获取相同文件名的图像
+#     common_files = image_files1.intersection(image_files2)
+#
+#     for image_file in common_files:
+#         # 读取图像
+#         image_path1 = os.path.join(image_dir1, image_file)
+#         image_path2 = os.path.join(image_dir2, image_file)
+#
+#         image1 = cv2.imread(image_path1)
+#         image2 = cv2.imread(image_path2)
+#
+#         if image1 is None or image2 is None:
+#             print(f"Error reading {image_file}")
+#             continue
+#
+#         # 融合图像
+#         fused_image = blend_images(image1, image2, alpha)
+#
+#         # 保存融合后的图像
+#         output_path = os.path.join(output_dir, image_file)
+#         cv2.imwrite(output_path, fused_image)
+#
+#         print(f"Saved fused image to {output_path}")
+#
+# # 使用示例
+# image_dir1 = '/Project/iamge_path1'
+# image_dir2 = '/Project/iamge_path2'
+# output_dir = '/Project/output'
+#
+# process_and_save_images(image_dir1, image_dir2, output_dir, alpha=0.5)
